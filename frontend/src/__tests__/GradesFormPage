@@ -1,0 +1,100 @@
+// src/__tests__/GradesFormPage.test.jsx (Título 2)
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { AuthContext } from '../contexts/AuthContext';
+import GradesFormPage from '../pages/GradesFormPage';
+import { rest } from 'msw';
+import { server } from '../mocks/server';
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
+
+// Helper para renderizar el formulario (nuevo o edición)
+function renderForm(enrollmentId, gradeId = null) {
+  const path = gradeId
+    ? `/enrollments/${enrollmentId}/grades/${gradeId}/edit`
+    : `/enrollments/${enrollmentId}/grades/new`;
+  window.history.pushState({}, 'Test', path);
+
+  return render(
+    <AuthContext.Provider value={{ user: { role: 'admin' } }}>
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route
+            path="/enrollments/:id/grades/new"
+            element={<GradesFormPage />}
+          />
+          <Route
+            path="/enrollments/:id/grades/:gradeId/edit"
+            element={<GradesFormPage />}
+          />
+        </Routes>
+      </MemoryRouter>
+    </AuthContext.Provider>
+  );
+}
+
+describe('GradesFormPage', () => {
+  const enrollmentId = 20;
+  const gradeId = 50;
+
+  it('permite asignar nota nueva y redirige al listado', async () => {
+    server.use(
+      rest.post(`${API_URL}/grades`, (req, res, ctx) => {
+        expect(req.body).toEqual({ enrollmentId, score: 92 });
+        return res(ctx.status(201), ctx.json({ success: true, data: { id: 99 } }));
+      })
+    );
+
+    renderForm(enrollmentId);
+
+    fireEvent.change(screen.getByLabelText(/Nota/i), { target: { value: '92' } });
+    fireEvent.click(screen.getByRole('button', { name: /Asignar/i }));
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe(`/enrollments/${enrollmentId}/grades`);
+    });
+  });
+
+  it('permite editar nota existente y redirige al listado', async () => {
+    // Mock GET para cargar nota existente
+    server.use(
+      rest.get(`${API_URL}/grades/${gradeId}`, (req, res, ctx) =>
+        res(ctx.status(200), ctx.json({ success: true, data: { score: 75 } }))
+      ),
+      rest.put(`${API_URL}/grades/${gradeId}`, (req, res, ctx) => {
+        expect(req.body).toEqual({ enrollmentId, score: 75 });
+        return res(ctx.status(200), ctx.json({ success: true, data: { id: gradeId, score: 75 } }));
+      })
+    );
+
+    renderForm(enrollmentId, gradeId);
+
+    // Esperar a que el campo se llene con el valor 75
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('75')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Actualizar/i }));
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe(`/enrollments/${enrollmentId}/grades`);
+    });
+  });
+
+  it('muestra validaciones de error del servidor', async () => {
+    server.use(
+      rest.post(`${API_URL}/grades`, (req, res, ctx) =>
+        res(ctx.status(400), ctx.json({ errors: [{ msg: 'score inválido' }] }))
+      )
+    );
+
+    renderForm(enrollmentId);
+
+    fireEvent.change(screen.getByLabelText(/Nota/i), { target: { value: '-5' } });
+    fireEvent.click(screen.getByRole('button', { name: /Asignar/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('score inválido')).toBeInTheDocument();
+    });
+  });
+});

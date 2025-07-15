@@ -1,3 +1,4 @@
+// src/contexts/useAuth.js
 import { useContext } from 'react';
 import { AuthContext } from './AuthProvider';
 
@@ -8,4 +9,3 @@ export const useAuth = () => {
   }
   return context;
 };
-// Este hook permite acceder al contexto de autenticación en cualquier componente

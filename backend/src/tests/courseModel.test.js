@@ -1,11 +1,16 @@
-const courseModel = require("../models/courseModel");
-const { pool } = require("../config/db");
-
-jest.mock("../config/db", () => ({
-  pool: {
-    query: jest.fn()
-  }
+jest.mock('../config/db', () => ({
+  query: jest.fn()
 }));
+const pool = require('../config/db');
+const {
+  getAllCourses,
+  getCourseById,
+  createCourse,
+  updateCourse,
+  deleteCourse
+} = require('../models/courseModel');
+
+const courseModel = require("../models/courseModel");
 
 describe("courseModel", () => {
 
@@ -28,7 +33,7 @@ describe("courseModel", () => {
 
       pool.query.mockResolvedValue(fakeResult);
 
-      const result = await courseModel.createCourse("Math", "Algebra Course", "Math", 10);
+      const result = await courseModel.createCourse("Math", "Algebra 1", "Math", 10);
       expect(result).toEqual(fakeResult.rows[0]);
     });
 

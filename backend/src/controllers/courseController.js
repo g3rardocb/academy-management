@@ -1,73 +1,70 @@
-const courseModel = require("../models/courseModel");
+/* src/controllers/courseController.js */
+const courseService = require('../services/courseService');
 
-const createCourse = async (req, res) => {
+exports.getCourses = async (req, res, next) => {
   try {
-    const { name, description, category } = req.body;
-    const createdBy = req.user.id;
-
-    const newCourse = await courseModel.createCourse(name, description, category, createdBy);
-    return res.status(201).json(newCourse);
-  } catch (error) {
-    console.error("Error creating course:", error);
-    return res.status(400).json({ error: error.message });
+    const data = await courseService.listCourses();
+    res.status(200);
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
   }
 };
 
-const getAllCourses = async (req, res) => {
+exports.getCourse = async (req, res, next) => {
   try {
-    const courses = await courseModel.getAllCourses();
-    return res.json(courses);
-  } catch (error) {
-    console.error("Error fetching courses:", error);
-    return res.status(500).json({ error: "Internal server error" });
-  }
-};
-
-const getCourseById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const course = await courseModel.getCourseById(id);
-    if (!course) {
-      return res.status(404).json({ error: "Course not found" });
+    const id = Number(req.params.id);
+    const data = await courseService.getCourseById(id);
+    if (!data) {
+      res.status(404);
+      res.json({ success: false, message: 'Curso no encontrado' });
+      return;
     }
-    return res.json(course);
-  } catch (error) {
-    console.error("Error fetching course:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    res.status(200);
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
   }
 };
 
-const updateCourse = async (req, res) => {
+exports.createCourse = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const { name, description, category } = req.body;
+    const course = await courseService.createCourse(req.body);
+    res.status(201);
+    res.json({ success: true, data: course });
+  } catch (err) {
+    next(err);
+  }
+};
 
-    const updated = await courseModel.updateCourse(id, name, description, category);
+exports.updateCourse = async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const updated = await courseService.updateCourse(id, req.body);
     if (!updated) {
-      return res.status(404).json({ error: "Course not found" });
+      res.status(404);
+      res.json({ success: false, message: 'No se pudo actualizar el curso' });
+      return;
     }
-    return res.json(updated);
-  } catch (error) {
-    console.error("Error updating course:", error);
-    return res.status(400).json({ error: error.message });
+    res.status(200);
+    res.json({ success: true, data: updated });
+  } catch (err) {
+    next(err);
   }
 };
 
-const deleteCourse = async (req, res) => {
+exports.deleteCourse = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    await courseModel.deleteCourse(id);
-    return res.status(204).send();
-  } catch (error) {
-    console.error("Error deleting course:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    const id = Number(req.params.id);
+    const removed = await courseService.deleteCourse(id);
+    if (!removed) {
+      res.status(404);
+      res.json({ success: false, message: 'Curso no encontrado' });
+      return;
+    }
+    res.status(204);
+    res.send();
+  } catch (err) {
+    next(err);
   }
-};
-
-module.exports = {
-  createCourse,
-  getAllCourses,
-  getCourseById,
-  updateCourse,
-  deleteCourse
 };

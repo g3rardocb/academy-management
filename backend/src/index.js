@@ -1,32 +1,15 @@
-// src/index.js
+// index.js (Título 1)
+// Carga variables de entorno y arranca el servidor
 
-// Importaciones
-const express = require("express");
-const cors = require("cors");
-require("dotenv").config();
-const testDbRoute = require("./routes/testDbRoute");
-const pool = require("./config/db");
+require('dotenv').config();             // Carga .env en process.env
+const http = require('http');
+const app = require('./app');            // Importa la configuración de Express
 
-// Inicializar app
-const app = express();
-const port = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;   // Puerto configurable
 
-// Middlewares
-app.use(cors());
-app.use(express.json());
+// Crea el servidor HTTP a partir de la app de Express
+const server = http.createServer(app);
 
-// Rutas
-app.use("/api", testDbRoute);
-
-app.get("/", (req, res) => {
-  res.send("🚀 API del Sistema de Gestión de Cursos Online funcionando");
+server.listen(PORT, () => {
+  console.log(`Servidor escuchando en http://localhost:${PORT}`);
 });
-
-// Iniciar servidor
-app.listen(port, () => {
-  console.log(` Servidor corriendo en http://localhost:${port}`);
-});
-// Importar y usar las rutas de autenticación
-const authRoutes = require("./routes/authRoutes");
-app.use("/api/auth", authRoutes);
-
